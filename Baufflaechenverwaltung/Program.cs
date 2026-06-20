@@ -42,8 +42,21 @@ namespace Baufflaechenverwaltung
         public string Eigentuemer { get; set; } = string.Empty;
         public FlaechenStatus Status { get; set; } = FlaechenStatus.Frei;
 
+        public bool BebaubarkeitPruefen()
+        {
+            bool istBebaubar = Bebaubarkeit.ToLower() == "ja";
+            Console.WriteLine($"Prüfung Fläche {FlaechenId} (B-Plan {BPlanNummer}): Bebaubarkeit = {Bebaubarkeit} -> {(istBebaubar ? "Zulässig" : "Nicht zulässig")}");
+            return istBebaubar;
+        }
+
         public void FlaecheReservieren()
         {
+            if (Status == FlaechenStatus.Bebaut)
+            {
+                Console.WriteLine($"Fläche {FlaechenId} kann nicht reserviert werden, da sie bereits bebaut ist.");
+                return;
+            }
+
             if (Status == FlaechenStatus.Frei)
             {
                 Status = FlaechenStatus.Reserviert;
@@ -85,9 +98,9 @@ namespace Baufflaechenverwaltung
     {
         static void Main(string[] args)
         {
-            // Setup
             var verwaltung = new Bauverwaltung();
             var grundstueck = new Grundstueck { FlurstueckNummer = "0015 00012 001/002" };
+            
             var flaeche1 = new Bauflaeche 
             {
                 FlaechenId = "F1", 
@@ -99,17 +112,38 @@ namespace Baufflaechenverwaltung
                 Bodenrichtwert = 500m, 
                 Eigentuemer = "Max Mustermann"
             };
+            
+            var flaeche2 = new Bauflaeche 
+            {
+                FlaechenId = "F2", 
+                Groesse = 300, 
+                Lage = "Süd", 
+                Nutzung = "Wohngebiet", 
+                Bebaubarkeit = "nein", 
+                BPlanNummer = "BP-2022-090", 
+                Bodenrichtwert = 600m, 
+                Eigentuemer = "Lisa Schmidt",
+                Status = FlaechenStatus.Bebaut
+            };
+
             grundstueck.Bauflaechen.Add(flaeche1);
+            grundstueck.Bauflaechen.Add(flaeche2);
 
             var antragsteller = new Antragsteller { Name = "Erika Musterfrau", Firma = "BauAG", Kontakt = "erika@bauag.de" };
 
-            // Demonstration
             Console.WriteLine("--- Demonstration Bauflächenverwaltung ---");
             
-            // 1. Fläche reservieren
+            // Test 1: Bebaubarkeit prüfen
+            flaeche1.BebaubarkeitPruefen();
+            flaeche2.BebaubarkeitPruefen();
+
+            // Test 2: Reservierung einer freien Fläche
             flaeche1.FlaecheReservieren();
 
-            // 2. Bauvorhaben anlegen
+            // Test 3: Reservierung einer bebauten Fläche (Validierung)
+            flaeche2.FlaecheReservieren();
+
+            // Bauvorhaben anlegen
             var meinVorhaben = verwaltung.BauvorhabenAnlegen(
                 "Wohnkomplex Nord", 
                 antragsteller, 
@@ -119,7 +153,6 @@ namespace Baufflaechenverwaltung
                 new List<Bauflaeche> { flaeche1 }
             );
 
-            // 3. Status aktualisieren
             meinVorhaben.StatusAktualisieren(VorhabenStatus.Genehmigt);
 
             Console.WriteLine("--- Ende der Demonstration ---");
